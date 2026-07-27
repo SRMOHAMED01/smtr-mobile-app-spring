@@ -1,0 +1,39 @@
+# === Maven ===
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!mvnw
+!mvnw.cmd
+
+# === IDE & Éditeurs ===
+# VS Code
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+bin/
+
+# === Logs & Temps réel ===
+*.log
+*.sys
+*.tmp
+
+# === Docker & Variablés d'environnement ===
+.env
+.env.local
+*.override.yml
+
+# === OS Files ===
+.DS_Store
+Thumbs.db
