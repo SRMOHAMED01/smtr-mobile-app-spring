@@ -5,6 +5,7 @@ import ma.smtr.backend.entity.Role;
 import ma.smtr.backend.entity.User;
 import ma.smtr.backend.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
  * ⚠️ À retirer ou sécuriser avant un vrai déploiement en production.
  */
 @Component
+@ConditionalOnProperty(name = "app.seed.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
 

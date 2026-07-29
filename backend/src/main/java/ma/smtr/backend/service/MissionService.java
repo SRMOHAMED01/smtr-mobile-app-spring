@@ -26,6 +26,8 @@ public class MissionService {
     private final UserRepository userRepository;
     private final DocumentTypeRepository documentTypeRepository;
     private final DocumentCheckRepository documentCheckRepository;
+    private final MissionAuditRepository missionAuditRepository;
+    private final MissionAccessService missionAccessService;
 
     // ------------------------------------------------------------------
     // Règle 1 + 2 : contrôle documentaire puis création de mission
@@ -47,11 +49,19 @@ public class MissionService {
             throw new BusinessException("Le camion " + truck.getMatricule() + " est déjà en mission");
         }
 
+        if (missionRepository.existsByDriverIdAndStatus(request.driverId(), MissionStatus.OUVERTE)) {
+            throw new BusinessException("Le chauffeur sélectionné est déjà affecté à une mission ouverte");
+        }
+
         // Règle : tout document obligatoire doit être couvert par le check-list
         List<DocumentType> documentsObligatoires = documentTypeRepository.findByObligatoireTrue();
         Set<Long> idsSoumis = request.documentChecks().stream()
                 .map(DocumentCheckItemRequest::documentTypeId)
                 .collect(Collectors.toSet());
+
+        if (idsSoumis.size() != request.documentChecks().size()) {
+            throw new BusinessException("Un type de document ne peut être contrôlé qu'une seule fois par sortie");
+        }
 
         for (DocumentType obligatoire : documentsObligatoires) {
             if (!idsSoumis.contains(obligatoire.getId())) {
@@ -99,9 +109,15 @@ public class MissionService {
             documentCheckRepository.save(check);
         }
 
+        recordAudit(mission, agent, MissionAuditAction.DOCUMENTS_CONTROLES, null, MissionStatus.OUVERTE,
+                "Contrôle de " + request.documentChecks().size() + " document(s) enregistré");
+
         // Le camion part en mission
         truck.setStatut(TruckStatus.EN_MISSION);
         truckRepository.save(truck);
+
+        recordAudit(mission, agent, MissionAuditAction.SORTIE_ENREGISTREE, null, MissionStatus.OUVERTE,
+                "Sortie enregistrée pour le camion " + truck.getMatricule());
 
         return mission;
     }
@@ -110,10 +126,12 @@ public class MissionService {
     // Règle 3 + 4 + 5 : retour du camion, clôture de la mission
     // ------------------------------------------------------------------
     @Transactional
-    public Mission enregistrerEntree(Long missionId, EntreeRequest request) {
+    public Mission enregistrerEntree(Long missionId, EntreeRequest request, String actorUsername) {
 
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Mission introuvable : id=" + missionId));
+
+        User actor = missionAccessService.requireAccess(mission, actorUsername);
 
         if (mission.getStatus() != MissionStatus.OUVERTE) {
             throw new BusinessException("Cette mission est déjà clôturée");
@@ -140,12 +158,21 @@ public class MissionService {
         truck.setStatut(TruckStatus.AU_PARC);
         truckRepository.save(truck);
 
+        recordAudit(mission, actor, MissionAuditAction.ENTREE_ENREGISTREE,
+                MissionStatus.OUVERTE, MissionStatus.TERMINEE, "Retour enregistré");
+
         return mission;
     }
 
     public Mission findById(Long id) {
         return missionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Mission introuvable : id=" + id));
+    }
+
+    public Mission findAccessibleById(Long id, String username) {
+        Mission mission = findById(id);
+        missionAccessService.requireAccess(mission, username);
+        return mission;
     }
 
     public List<Mission> findAll() {
@@ -168,5 +195,17 @@ public class MissionService {
         return missionRepository.findAll().stream()
                 .filter(m -> Boolean.TRUE.equals(m.getAnomalie()) || Boolean.TRUE.equals(m.getMaintenanceNeeded()))
                 .toList();
+    }
+
+    private void recordAudit(Mission mission, User actor, MissionAuditAction action,
+                             MissionStatus previousStatus, MissionStatus newStatus, String details) {
+        MissionAudit audit = new MissionAudit();
+        audit.setMission(mission);
+        audit.setPerformedBy(actor);
+        audit.setAction(action);
+        audit.setPreviousStatus(previousStatus);
+        audit.setNewStatus(newStatus);
+        audit.setDetails(details);
+        missionAuditRepository.save(audit);
     }
 }

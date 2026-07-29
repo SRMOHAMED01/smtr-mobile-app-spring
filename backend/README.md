@@ -20,6 +20,14 @@ de camions, contrôle documentaire, photos, historique et anomalies.
 docker compose up -d
 ```
 
+Avant le lancement, définir `APP_JWT_SECRET` avec une valeur aléatoire d'au moins 32 caractères. Exemple PowerShell :
+
+```powershell
+$env:APP_JWT_SECRET = "remplacer-par-un-secret-aleatoire-de-plus-de-32-caracteres"
+```
+
+Pour charger les deux comptes de démonstration (`admin` et `agent1`) uniquement en développement, définir également `APP_SEED_ENABLED=true`.
+
 Ça démarre un conteneur Postgres 16 avec :
 - DB : `smtr_db`
 - user / password : `smtr_user` / `smtr_password`

@@ -34,15 +34,16 @@ public class MissionController {
 
     @PostMapping("/{id}/entree")
     @PreAuthorize("hasAnyRole('AGENT','ADMIN')")
-    public MissionResponse enregistrerEntree(@PathVariable Long id, @Valid @RequestBody EntreeRequest request) {
-        Mission mission = missionService.enregistrerEntree(id, request);
+    public MissionResponse enregistrerEntree(@PathVariable Long id, @Valid @RequestBody EntreeRequest request,
+                                              @AuthenticationPrincipal UserPrincipal principal) {
+        Mission mission = missionService.enregistrerEntree(id, request, principal.getUsername());
         return toResponse(mission);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('AGENT','ADMIN')")
-    public MissionResponse findById(@PathVariable Long id) {
-        return toResponse(missionService.findById(id));
+    public MissionResponse findById(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal principal) {
+        return toResponse(missionService.findAccessibleById(id, principal.getUsername()));
     }
 
     @GetMapping

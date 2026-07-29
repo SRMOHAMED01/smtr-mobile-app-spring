@@ -11,4 +11,5 @@ public interface MissionRepository extends JpaRepository<Mission, Long> {
     List<Mission> findByTruckIdAndStatus(Long truckId, MissionStatus status);
     List<Mission> findByStatus(MissionStatus status);
     Optional<Mission> findFirstByTruckIdAndStatus(Long truckId, MissionStatus status);
+    boolean existsByDriverIdAndStatus(Long driverId, MissionStatus status);
 }

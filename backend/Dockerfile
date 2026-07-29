@@ -1,22 +1,19 @@
 # 1. Image de build : Compile le projet Java avec Maven
-FROM maven:3.9-eclipse-temurin-17-alpine AS builder
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 WORKDIR /app
 
 # Copie des fichiers de configuration Maven
 COPY pom.xml .
-COPY .mvn .mvn
-COPY mvnw .
-RUN chmod +x mvnw
 
 # Téléchargement des dépendances
-RUN ./mvnw dependency:go-offline -B
+RUN mvn dependency:go-offline -B
 
 # Copie du code source et compilation du JAR
 COPY src ./src
-RUN ./mvnw package -DskipTests
+RUN mvn package -DskipTests -B
 
 # 2. Image d'exécution : Légère et optimisée
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # Copie du fichier .jar généré depuis l'étape de build
